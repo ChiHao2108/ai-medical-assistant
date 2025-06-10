@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trợ lý Y tế AI (Tham khảo)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Màu sắc chủ đạo - Đa dạng hơn với gradient và sắc thái xanh */
+        :root {
+            --color-primary-dark: #004085; /* Xanh đậm cho tiêu đề */
+            --color-primary: #007bff; /* Xanh dương chính */
+            --color-primary-light: #66b2ff; /* Xanh dương nhạt */
+            --color-secondary-dark: #1e7e34; /* Xanh lá cây đậm */
+            --color-secondary: #28a745; /* Xanh lá cây chính */
+            --color-accent-dark: #0f6674; /* Xanh ngọc đậm */
+            --color-accent: #17a2b8; /* Xanh ngọc chính */
+            --color-background-gradient-start: #e0f2f7; /* Bầu trời xanh nhẹ */
+            --color-background-gradient-end: #cce7f5; /* Biển xanh dịu */
+            --color-card-bg: #ffffff; /* Nền thẻ trắng tinh khôi */
+            --color-text: #343a40; /* Màu chữ chính */
+            --color-light-text: #6c757d; /* Màu chữ phụ */
+            --color-border: #dee2e6; /* Màu đường viền nhẹ */
+            --color-warning-bg: #ffe0b2; /* Nền cảnh báo nhẹ */
+            --color-warning-border: #ff9800; /* Viền cảnh báo */
+            --color-warning-text: #e65100; /* Chữ cảnh báo */
+            --color-shadow: rgba(0, 0, 0, 0.15); /* Màu bóng đổ đậm hơn */
+            --color-hover-shadow: rgba(0, 123, 255, 0.3); /* Màu bóng đổ khi hover */
+        }
+
+        /* Reset cơ bản để kiểm soát tốt hơn */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif; /* Font Montserrat hiện đại, thanh lịch */
+            margin: 0;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, var(--color-background-gradient-start) 0%, var(--color-background-gradient-end) 100%); /* Nền gradient mượt mà */
+            color: var(--color-text);
+            line-height: 1.7;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden; /* Tránh tràn ngang */
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px; /* Tăng thêm chiều rộng */
+            margin: auto;
+            background: var(--color-card-bg);
+            padding: 45px 50px; /* Padding lớn hơn */
+            border-radius: 18px; /* Bo góc cực mềm mại */
+            box-shadow: 0 20px 60px var(--color-shadow); /* Bóng đổ sâu, cao cấp */
+            animation: fadeInScale 1s ease-out forwards; /* Hiệu ứng phức tạp hơn khi tải trang */
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Keyframes cho hiệu ứng tải trang */
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: translateY(40px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Trang trí nền (ví dụ: các hình dạng trừu tượng) */
+        .background-decoration {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 18px;
+            pointer-events: none; /* Không ảnh hưởng đến click */
+            z-index: 0;
+        }
+
+        .background-decoration::before,
+        .background-decoration::after {
+            content: '';
+            position: absolute;
+            background: rgba(0, 123, 255, 0.05); /* Màu xanh nhẹ, mờ */
+            border-radius: 50%;
+            opacity: 0.8;
+            filter: blur(50px);
+            animation: floatEffect 10s ease-in-out infinite alternate;
+        }
+
+        .background-decoration::before {
+            width: 300px;
+            height: 300px;
+            top: -50px;
+            left: -100px;
+        }
+
+        .background-decoration::after {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            right: -80px;
+            background: rgba(40, 167, 69, 0.05); /* Màu xanh lá nhẹ, mờ */
+            animation-delay: 2s;
+        }
+
+        @keyframes floatEffect {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(20px, 30px) scale(1.05); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+
+        h1 {
+            text-align: center;
+            color: var(--color-primary-dark); /* Màu xanh đậm cho tiêu đề chính */
+            margin-bottom: 35px;
+            font-size: 3.2em; /* Kích thước lớn hơn nữa */
+            font-weight: 700;
+            letter-spacing: 0.05em; /* Khoảng cách chữ tinh tế */
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.08); /* Bóng đổ mạnh mẽ hơn */
+            position: relative;
+            padding-bottom: 15px;
+        }
+        h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(to right, var(--color-primary), var(--color-secondary)); /* Đường kẻ gradient */
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        h2 {
+            color: var(--color-accent);
+            margin-bottom: 25px;
+            font-size: 2em;
+            font-weight: 600;
+            border-left: 5px solid var(--color-primary); /* Đường kẻ dọc nổi bật */
+            padding-left: 15px;
+            margin-top: 40px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .disclaimer {
+            background: linear-gradient(45deg, var(--color-warning-bg), #fff8e1); /* Gradient nhẹ cho cảnh báo */
+            border: 1px solid var(--color-warning-border);
+            color: var(--color-warning-text);
+            padding: 20px;
+            margin-bottom: 35px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.15); /* Bóng đổ ấm áp */
+            transition: all 0.3s ease;
+        }
+        .disclaimer:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 152, 0, 0.25);
+        }
+
+        .section {
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 1px dashed var(--color-border);
+            position: relative;
+        }
+        .section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--color-primary-dark);
+            font-size: 1.2em; /* Kích thước lớn hơn */
+        }
+
+        textarea, input[type="text"] {
+            width: 100%; /* Đảm bảo full width */
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px; /* Bo góc rõ ràng */
+            font-size: 1.05em;
+            box-sizing: border-box;
+            background-color: #fcfcfc; /* Nền input hơi ngà */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+        textarea:focus, input[type="text"]:focus {
+            border-color: var(--color-primary-light); /* Màu xanh nhạt khi focus */
+            box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.2); /* Vòng sáng quanh input */
+            background-color: #ffffff;
+            outline: none;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+            background-color: #fcfcfc;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            background-color: var(--color-primary);
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        input[type="file"]::-webkit-file-upload-button:hover {
+            background-color: var(--color-primary-dark);
+        }
+
+        button {
+            background: linear-gradient(45deg, var(--color-primary), var(--color-accent)); /* Nút gradient */
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.15em;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3); /* Bóng đổ mạnh hơn */
+            letter-spacing: 0.03em;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, var(--color-secondary), var(--color-secondary-dark)); /* Gradient xanh lá khi hover */
+            transform: translateY(-4px); /* Hiệu ứng nhấc lên rõ ràng */
+            box-shadow: 0 12px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .result-box {
+            margin-top: 30px;
+            padding: 25px;
+            background-color: var(--color-background-gradient-start); /* Nền kết quả là màu gradient nhẹ */
+            border: 1px solid var(--color-primary-light);
+            border-radius: 10px;
+            min-height: 100px; /* Tăng chiều cao tối thiểu */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 1.05em;
+            color: var(--color-text);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.08); /* Bóng đổ vào trong rõ hơn */
+            position: relative;
+            overflow: hidden;
+        }
+        .result-box::before { /* Hiệu ứng mờ ở góc */
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 30px;
+            height: 30px;
+            border-top: 3px solid var(--color-primary-light);
+            border-left: 3px solid var(--color-primary-light);
+            border-radius: 5px;
+        }
+        .result-box::after { /* Hiệu ứng mờ ở góc đối diện */
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            border-bottom: 3px solid var(--color-primary-light);
+            border-right: 3px solid var(--color-primary-light);
+            border-radius: 5px;
+        }
+
+        .result-box p {
+            margin-bottom: 12px;
+            font-weight: 700;
+            color: var(--color-primary-dark); /* Tiêu đề kết quả màu xanh đậm */
+            font-size: 1.1em;
+        }
+
+        .loading {
+            font-style: italic;
+            color: var(--color-light-text);
+            animation: bounce 1.2s infinite ease-in-out; /* Hiệu ứng nảy lên cho loading */
+            display: inline-block;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px; /* Tăng chiều cao xem trước ảnh */
+            margin-top: 20px;
+            display: none;
+            border: 3px solid var(--color-accent); /* Viền màu xanh ngọc đậm */
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            object-fit: contain; /* Đảm bảo ảnh vừa khung mà không bị méo */
+            transition: transform 0.3s ease;
+        }
+        #imagePreview:hover {
+            transform: scale(1.02); /* Phóng to nhẹ khi hover */
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        ul li {
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); /* Bóng đổ mạnh hơn */
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex; /* Dùng flexbox cho bố cục bên trong item */
+            align-items: center;
+        }
+        ul li::before { /* Icon nhỏ trang trí */
+            content: '🏥'; /* Biểu tượng bệnh viện */
+            font-size: 1.5em;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-primary-light);
+            opacity: 0.7;
+            z-index: 1;
+        }
+        ul li div {
+            padding-left: 45px; /* Đẩy nội dung sang phải để nhường chỗ cho icon */
+            flex-grow: 1;
+        }
+        ul li:hover {
+            transform: translateY(-5px); /* Nhấc lên rõ ràng */
+            box-shadow: 0 10px 25px var(--color-hover-shadow); /* Bóng đổ nổi bật hơn khi hover */
+            border-color: var(--color-primary); /* Đổi màu viền khi hover */
+        }
+        ul li strong {
+            color: var(--color-primary-dark);
+            font-size: 1.2em;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 700;
+        }
+        ul li span {
+            color: var(--color-light-text);
+            font-size: 0.95em;
+            display: block;
+            margin-bottom: 3px;
+        }
+        ul li span.status-open {
+            color: var(--color-secondary);
+            font-weight: 700;
+            animation: fadeInOut 2s infinite alternate; /* Hiệu ứng nhấp nháy nhẹ cho trạng thái */
+        }
+        ul li span.status-closed {
+            color: #dc3545; /* Màu đỏ nổi bật cho đóng cửa */
+            font-weight: 700;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px;
+            }
+            h1 {
+                font-size: 2.5em;
+            }
+            h2 {
+                font-size: 1.6em;
+            }
+            button {
+                padding: 12px 20px;
+                font-size: 1em;
+            }
+            ul li {
+                padding: 15px;
+            }
+            ul li::before {
+                left: 10px;
+                font-size: 1.2em;
+            }
+            ul li div {
+                padding-left: 35px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 20px 10px;
+            }
+            .container {
+                padding: 25px 20px;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 2em;
+                margin-bottom: 25px;
+            }
+            h2 {
+                font-size: 1.4em;
+                margin-top: 25px;
+            }
+            .disclaimer {
+                padding: 15px;
+                font-size: 0.9em;
+            }
+            textarea, input[type="text"], input[type="file"] {
+                padding: 10px;
+                font-size: 0.95em;
+            }
+            .result-box {
+                padding: 18px;
+                min-height: 80px;
+            }
+            ul li {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+            ul li strong {
+                font-size: 1em;
+            }
+            ul li span {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="background-decoration"></div>
+
+        <h1>Trợ lý Y tế AI <br><small>(Thông tin tham khảo)</small></h1>
+
+        <div class="disclaimer">
+            Lưu ý quan trọng: Ứng dụng này chỉ cung cấp thông tin tham khảo. AI không phải là bác sĩ. Vui lòng tham khảo ý kiến chuyên gia y tế để chẩn đoán, điều trị hoặc kê đơn thuốc.
+        </div>
+
+        <div class="section">
+            <h2>1. Phân tích triệu chứng</h2>
+            <label for="questionInput">Mô tả triệu chứng của bạn:</label>
+            <textarea id="questionInput" rows="6" placeholder="Ví dụ: Tôi bị sốt cao, đau họng, ho khan và đau cơ toàn thân."></textarea>
+            <button onclick="askText()">Gửi mô tả</button>
+            <div class="result-box">
+                <p>Kết quả phân tích:</p>
+                <div id="textResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>2. Phân tích hình ảnh y tế</h2>
+            <label for="imageUpload">Chọn hình ảnh (ví dụ: hình ảnh da, vết thương):</label>
+            <input type="file" id="imageUpload" accept="image/*" onchange="previewImage()">
+            <img id="imagePreview" src="#" alt="Xem trước hình ảnh">
+            <label for="imageTextInput">Nhập câu hỏi về hình ảnh (tùy chọn):</label>
+            <input type="text" id="imageTextInput" placeholder="Ví dụ: Mô tả vết phát ban này.">
+            <button onclick="analyzeImage()">Phân tích hình ảnh</button>
+            <div class="result-box">
+                <p>Kết quả phân tích:</p>
+                <div id="imageResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. Tìm bệnh viện gần nhất</h2>
+            <p>Sử dụng vị trí hiện tại của bạn để tìm bệnh viện.</p>
+            <button onclick="findNearbyHospitals()">Tìm bệnh viện</button>
+            <div class="result-box">
+                <p>Danh sách bệnh viện:</p>
+                <ul id="hospitalList"></ul>
+                <div id="hospitalResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to display image preview
+        function previewImage() {
+            const fileInput = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                imagePreview.src = '#';
+                imagePreview.style.display = 'none';
+            }
+        }
+
+        async function askText() {
+            const question = document.getElementById('questionInput').value;
+            const textResultDiv = document.getElementById('textResult');
+            textResultDiv.innerHTML = '<span class="loading">Đang xử lý...</span>';
+
+            if (!question) {
+                textResultDiv.innerHTML = 'Vui lòng mô tả triệu chứng của bạn.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/ask_text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    textResultDiv.innerText = data.answer;
+                } else {
+                    textResultDiv.innerText = 'Lỗi: ' + data.error;
+                }
+            } catch (error) {
+                textResultDiv.innerText = 'Có lỗi xảy ra khi gửi yêu cầu: ' + error.message;
+            }
+        }
+
+        async function analyzeImage() {
+            const imageFile = document.getElementById('imageUpload').files[0];
+            const imageTextInput = document.getElementById('imageTextInput').value;
+            const imageResultDiv = document.getElementById('imageResult');
+            imageResultDiv.innerHTML = '<span class="loading">Đang xử lý...</span>';
+
+            if (!imageFile) {
+                imageResultDiv.innerHTML = 'Vui lòng chọn một hình ảnh.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', imageFile);
+            formData.append('text_input', imageTextInput);
+
+            try {
+                const response = await fetch('/analyze_image', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    imageResultDiv.innerText = data.analysis;
+                } else {
+                    imageResultDiv.innerText = 'Lỗi: ' + data.error;
+                }
+            } catch (error) {
+                imageResultDiv.innerText = 'Có lỗi xảy ra khi gửi yêu cầu: ' + error.message;
+            }
+        }
+
+        async function findNearbyHospitals() {
+            const hospitalListDiv = document.getElementById('hospitalList');
+            const hospitalResultDiv = document.getElementById('hospitalResult');
+            hospitalListDiv.innerHTML = ''; // Clear previous list
+            hospitalResultDiv.innerHTML = '<span class="loading">Đang tìm bệnh viện...</span>';
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    try {
+                        const response = await fetch('/get_nearby_hospitals', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ latitude: latitude, longitude: longitude })
+                        });
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            if (data.hospitals && data.hospitals.length > 0) {
+                                hospitalResultDiv.innerHTML = ''; // Clear loading message
+                                data.hospitals.forEach(hospital => {
+                                    const listItem = document.createElement('li');
+                                    listItem.innerHTML = `
+                                        <div>
+                                            <strong>${hospital.name}</strong><br>
+                                            <span>Địa chỉ: ${hospital.address || 'Không rõ'}</span><br>
+                                            <span>Đánh giá: ${hospital.rating ? hospital.rating + ' sao' : 'Không có'}</span><br>
+                                            <span>Hiện tại: <span class="${hospital.open_now ? 'status-open' : 'status-closed'}">${hospital.open_now ? 'Đang mở' : 'Đóng cửa' || 'Không rõ'}</span></span>
+                                        </div>
+                                    `;
+                                    hospitalListDiv.appendChild(listItem);
+                                });
+                            } else {
+                                hospitalResultDiv.innerText = 'Không tìm thấy bệnh viện nào gần đây.';
+                            }
+                        } else {
+                            hospitalResultDiv.innerText = 'Lỗi: ' + data.error;
+                        }
+                    } catch (error) {
+                        hospitalResultDiv.innerText = 'Có lỗi xảy ra khi tìm bệnh viện: ' + error.message;
+                    }
+                }, (error) => {
+                    hospitalResultDiv.innerText = 'Không thể lấy vị trí của bạn. Vui lòng cho phép truy cập vị trí.';
+                    console.error("Geolocation error:", error);
+                });
+            } else {
+                hospitalResultDiv.innerText = 'Trình duyệt của bạn không hỗ trợ Geolocation.';
+            }
+        }
+    </script>
+</body>
+</html>

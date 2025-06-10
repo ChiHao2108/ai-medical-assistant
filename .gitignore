@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.env
+.vscode/
+
+# Environment variables (RẤT QUAN TRỌNG: KHÔNG ĐẨY KHÓA API!)
+.env
