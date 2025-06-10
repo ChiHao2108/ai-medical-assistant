@@ -1,35 +1,42 @@
 from flask import Flask, request, jsonify, render_template
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv # Quan trọng cho phát triển cục bộ
 from PIL import Image
 import io
-import requests # Thư viện để gọi API bên ngoài, ví dụ: Google Maps
+import requests
 
-# Load environment variables from .env file
-load_dotenv()
+# --- 1. Tải biến môi trường ---
+# load_dotenv() phải được gọi ĐẦU TIÊN để đảm bảo các biến từ .env được tải
+# Nó chỉ ảnh hưởng khi chạy cục bộ, Render sẽ tự cung cấp biến môi trường
+load_dotenv() 
 
 app = Flask(__name__)
 
-# Configure Google Generative AI with your API Key
+# --- 2. Cấu hình API Keys từ biến môi trường ---
+# Luôn lấy từ os.getenv() để hoạt động trên cả môi trường cục bộ và Render
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY not found in environment variables. Please set it in a .env file.")
+    # Báo lỗi rõ ràng nếu không tìm thấy khóa API, cả trên cục bộ lẫn Render
+    raise ValueError("GOOGLE_API_KEY not found in environment variables. Please set it in Render's environment settings or in a local .env file.")
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# Lấy Google Maps API Key (nếu có và muốn dùng tính năng tìm bệnh viện)
-# Bạn sẽ cần đăng ký trên Google Cloud Platform để có khóa này
+# Lấy Google Maps API Key (nếu có)
 Maps_API_KEY = os.getenv("Maps_API_KEY")
 
-# Initialize the generative model (using gemini-1.5-flash-latest for potentially faster response)
-# Nếu bạn muốn mô hình mạnh mẽ hơn, hãy dùng 'gemini-1.5-pro-latest'
+# --- 3. Khởi tạo mô hình AI ---
+# Sử dụng gemini-1.5-flash-latest hoặc gemini-1.5-pro-latest tùy nhu cầu
 model = genai.GenerativeModel('gemini-1.5-flash-latest')
+vision_model = genai.GenerativeModel('gemini-1.5-flash-latest') # Hoặc 'gemini-1.5-pro-latest' nếu cần nhận diện hình ảnh tốt hơn
+
+# --- 4. Định nghĩa các routes (đường dẫn API) ---
 
 @app.route('/')
 def index():
     """
     Renders the main index.html page.
     """
+    # Đảm bảo bạn có file templates/index.html trong thư mục dự án
     return render_template('index.html')
 
 @app.route('/ask_text', methods=['POST'])
@@ -43,7 +50,7 @@ def ask_text():
         return jsonify({"error": "No question provided"}), 400
 
     try:
-        # Prompt Engineering for medical symptoms
+        # Prompt Engineering cho triệu chứng y tế
         medical_prompt = (
             "Bạn là một trợ lý thông tin y tế ảo. Dựa trên các triệu chứng sau, hãy cung cấp một số khả năng bệnh lý có thể xảy ra "
             "(KHÔNG PHẢI LÀ CHẨN ĐOÁN CUỐI CÙNG), khuyến nghị các bước tiếp theo cần thực hiện (ví dụ: nên đi khám bác sĩ chuyên khoa nào, "
@@ -79,7 +86,7 @@ def analyze_image():
         image_bytes = image_file.read()
         image = Image.open(io.BytesIO(image_bytes))
 
-        # Prompt Engineering for medical image analysis
+        # Prompt Engineering cho phân tích hình ảnh y tế
         if text_input:
             medical_image_prompt = (
                 "Bạn là một trợ lý phân tích hình ảnh y tế ảo. Dựa trên hình ảnh và câu hỏi sau, hãy mô tả những gì bạn thấy có liên quan đến y tế. "
@@ -95,9 +102,9 @@ def analyze_image():
                 "Vui lòng chỉ mô tả khách quan và liệt kê các yếu tố có thể liên quan đến y tế hoặc cần được chú ý thêm. "
                 "Luôn khuyến nghị người dùng tìm đến bác sĩ để được đánh giá chuyên nghiệp.** "
             )
-        contents = [medical_image_prompt, image]
-
-        response = model.generate_content(contents)
+        
+        # model cho ảnh thường là gemini-pro-vision hoặc gemini-1.5-flash/pro-latest (có khả năng multimodal)
+        response = vision_model.generate_content([medical_image_prompt, image]) 
         return jsonify({"analysis": response.text})
     except Exception as e:
         print(f"Error analyzing image: {e}")
@@ -110,7 +117,7 @@ def get_nearby_hospitals():
     **Lưu ý:** Chức năng này yêu cầu Maps_API_KEY hợp lệ và có thể phát sinh phí.
     """
     if not Maps_API_KEY:
-        return jsonify({"error": "Google Maps API Key not configured."}), 500
+        return jsonify({"error": "Google Maps API Key not configured. Please set Maps_API_KEY in Render's environment settings."}), 500
 
     data = request.json
     latitude = data.get('latitude')
@@ -119,13 +126,13 @@ def get_nearby_hospitals():
     if not latitude or not longitude:
         return jsonify({"error": "Location (latitude, longitude) not provided."}), 400
 
-    # Google Maps Places API endpoint (Find Place from Text or Nearby Search)
-    # Đây là ví dụ sử dụng Nearby Search. radius tính bằng mét.
+    # Google Maps Places API endpoint (Nearby Search)
+    # radius tính bằng mét.
     url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=5000&type=hospital&key={Maps_API_KEY}"
 
     try:
         response = requests.get(url)
-        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status() # Báo lỗi nếu status code là 4xx hoặc 5xx
         places_data = response.json()
 
         hospitals = []
@@ -145,8 +152,10 @@ def get_nearby_hospitals():
         print(f"Unexpected error in get_nearby_hospitals: {e}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-
+# --- 5. Chạy ứng dụng Flask ---
 if __name__ == '__main__':
-    # Run the Flask application
-    # Set debug=False for production environments for security and performance
-    app.run(debug=True)
+    # Lấy cổng từ biến môi trường PORT của Render. Mặc định là 5000 cho chạy cục bộ.
+    port = int(os.environ.get("PORT", 5000))
+    # Chạy ứng dụng Flask, lắng nghe trên tất cả các interface (0.0.0.0)
+    # và tắt chế độ debug khi triển khai lên production để đảm bảo bảo mật và hiệu suất
+    app.run(host='0.0.0.0', port=port, debug=False)
