@@ -2,4 +2,5 @@ Flask
 google-generativeai
 python-dotenv
 requests
+Pillow
 # Thêm bất kỳ thư viện nào khác mà bạn đã cài đặt
