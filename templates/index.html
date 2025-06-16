@@ -2,29 +2,33 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trợ lý Y tế AI (Tham khảo)</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../static/style.css"> 
 </head>
 <body>
+  <div id="usageWarning" class="warning-banner" style="display: none;">
+  ⚠️ Bạn đã dùng gần hết số lượt miễn phí. Hãy cân nhắc sử dụng tiết kiệm.
+  </div>
+
   <div class="container">
     <div class="background-decoration"></div>
 
-    <h1>Trợ lý Y tế AI <br><small>(Thông tin tham khảo)</small></h1>
+    <h1>🧠 Trợ lý Y tế AI <br><small>(Thông tin tham khảo)</small></h1>
 
     <div class="disclaimer">
-      Lưu ý quan trọng: Ứng dụng này chỉ cung cấp thông tin tham khảo. AI không phải là bác sĩ. Vui lòng tham khảo ý kiến chuyên gia y tế để chẩn đoán, điều trị hoặc kê đơn thuốc.
+      ⚠️ Lưu ý: Ứng dụng này chỉ cung cấp thông tin tham khảo. AI không phải là bác sĩ. Luôn hỏi ý kiến chuyên gia y tế để được chẩn đoán chính xác.
     </div>
 
     <!-- PHÂN TÍCH TRIỆU CHỨNG -->
     <div class="section">
       <h2>1. Phân tích triệu chứng</h2>
       <label for="questionInput">Mô tả triệu chứng của bạn:</label>
-      <textarea id="questionInput" rows="6" placeholder="Ví dụ: Tôi bị sốt cao, đau họng, ho khan và đau cơ toàn thân."></textarea>
-      <button onclick="askText()">Gửi mô tả</button>
+      <textarea id="questionInput" rows="6" placeholder="Ví dụ: Tôi bị sốt cao, ho khan, đau họng..."></textarea>
+      <button onclick="askText()">📝 Gửi mô tả</button>
       <div class="result-box">
-        <p>Kết quả phân tích:</p>
+        <p><strong>Kết quả phân tích:</strong></p>
         <div id="textResult"></div>
       </div>
     </div>
@@ -32,44 +36,61 @@
     <!-- PHÂN TÍCH HÌNH ẢNH -->
     <div class="section">
       <h2>2. Phân tích hình ảnh y tế</h2>
-      <label for="imageUpload">Chọn hình ảnh (ví dụ: hình ảnh da, vết thương):</label>
-      <input type="file" id="imageUpload" accept="image/*" onchange="previewImage()">
-      <img id="imagePreview" src="#" alt="Xem trước hình ảnh" style="display:none;">
-      <label for="imageTextInput">Nhập câu hỏi về hình ảnh (tùy chọn):</label>
-      <input type="text" id="imageTextInput" placeholder="Ví dụ: Mô tả vết phát ban này.">
-      <button onclick="analyzeImage()">Phân tích hình ảnh</button>
+      <label for="imageUpload">Chọn 1 hoặc nhiều hình ảnh (ví dụ: da, phát ban, vết thương...):</label>
+      <input type="file" id="imageUpload" accept="image/*" multiple onchange="previewImages()">
+      <div id="imagePreviewContainer" class="image-preview-container"></div>
+
+      <label for="imageTextInput">Thêm mô tả về hình ảnh (tùy chọn):</label>
+      <input type="text" id="imageTextInput" placeholder="Ví dụ: Mô tả vết ban ở tay.">
+      <button onclick="analyzeImage()">🧪 Phân tích hình ảnh</button>
       <div class="result-box">
-        <p>Kết quả phân tích:</p>
+        <p><strong>Kết quả phân tích:</strong></p>
         <div id="imageResult"></div>
       </div>
+    </div>
+
+    <div class="section">
+    <h2>Bản đồ bệnh viện gần bạn</h2>
+    <input
+      type="text"
+      id="mapSearch"
+      placeholder="Nhập từ khóa (VD: bệnh viện da liễu)"
+      style="padding: 8px; width: 100%; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 12px;"
+    />
+    <button onclick="searchMap()" style="padding: 8px 16px; border: none; background: #007bff; color: white; border-radius: 6px;">Tìm kiếm</button>
+    <div id="mapContainer" style="margin-top: 16px;">Đang lấy vị trí...</div>
     </div>
   </div>
 
   <script>
-    // Xem trước ảnh
-    function previewImage() {
-      const fileInput = document.getElementById('imageUpload');
-      const imagePreview = document.getElementById('imagePreview');
-      if (fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          imagePreview.src = e.target.result;
-          imagePreview.style.display = 'block';
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-      } else {
-        imagePreview.src = '#';
-        imagePreview.style.display = 'none';
-      }
-    }
+    // Preview nhiều ảnh
+    function previewImages() {
+    const fileInput = document.getElementById('imageUpload');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    previewContainer.innerHTML = ''; // Clear cũ
 
-    // Gửi mô tả triệu chứng
+    const files = fileInput.files;
+    if (files.length === 0) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'preview-thumb';
+        previewContainer.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+    // Phân tích văn bản
     async function askText() {
       const question = document.getElementById('questionInput').value;
       const textResultDiv = document.getElementById('textResult');
       textResultDiv.innerHTML = '<span class="loading">Đang xử lý...</span>';
       if (!question) {
-        textResultDiv.innerHTML = 'Vui lòng mô tả triệu chứng của bạn.';
+        textResultDiv.innerHTML = '⚠️ Vui lòng mô tả triệu chứng của bạn.';
         return;
       }
       try {
@@ -81,23 +102,26 @@
         const data = await response.json();
         textResultDiv.innerText = response.ok ? data.answer : 'Lỗi: ' + data.error;
       } catch (error) {
-        textResultDiv.innerText = 'Có lỗi xảy ra khi gửi yêu cầu: ' + error.message;
+        textResultDiv.innerText = '❌ Lỗi khi gửi yêu cầu: ' + error.message;
       }
     }
 
-    // Phân tích ảnh
+    // Phân tích nhiều ảnh
     async function analyzeImage() {
-      const imageFile = document.getElementById('imageUpload').files[0];
+      const imageFiles = document.getElementById('imageUpload').files;
       const imageTextInput = document.getElementById('imageTextInput').value;
       const imageResultDiv = document.getElementById('imageResult');
-      imageResultDiv.innerHTML = '<span class="loading">Đang xử lý...</span>';
-      if (!imageFile) {
-        imageResultDiv.innerHTML = 'Vui lòng chọn một hình ảnh.';
+      imageResultDiv.innerHTML = '<span class="loading">Đang xử lý ảnh...</span>';
+
+      if (!imageFiles || imageFiles.length === 0) {
+        imageResultDiv.innerHTML = '⚠️ Vui lòng chọn ít nhất 1 hình ảnh.';
         return;
       }
 
       const formData = new FormData();
-      formData.append('image', imageFile);
+      for (let i = 0; i < imageFiles.length; i++) {
+        formData.append('image', imageFiles[i]);
+      }
       formData.append('text_input', imageTextInput);
 
       try {
@@ -108,9 +132,90 @@
         const data = await response.json();
         imageResultDiv.innerText = response.ok ? data.analysis : 'Lỗi: ' + data.error;
       } catch (error) {
-        imageResultDiv.innerText = 'Có lỗi xảy ra khi gửi yêu cầu: ' + error.message;
+        imageResultDiv.innerText = '❌ Lỗi khi gửi yêu cầu: ' + error.message;
       }
     }
+
+    let userLat = null;
+  let userLon = null;
+
+  window.onload = function () {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(success, error);
+    } else {
+      document.getElementById('mapContainer').innerHTML = "Trình duyệt không hỗ trợ định vị.";
+    }
+  };
+
+  fetch('/usage_check')
+  .then(res => res.json())
+  .then(data => {
+    if (data.warning) {
+      document.getElementById("usageWarning").style.display = "block";
+    }
+  })
+  .catch(err => console.log("Lỗi khi lấy lượt:", err));
+
+
+  function success(position) {
+    userLat = position.coords.latitude;
+    userLon = position.coords.longitude;
+    showMap("bệnh viện"); // hiển thị mặc định là "bệnh viện"
+  }
+
+  function error() {
+    document.getElementById('mapContainer').innerHTML = "Không thể lấy vị trí.";
+  }
+
+  function showMap(query) {
+  const mapUrl = `https://www.google.com/maps?q=${query}+gần+${userLat},${userLon}`;
+  const iframe = `
+    <div style="text-align: right; margin-top: 10px;">
+      <a
+        href="${mapUrl}"
+        target="_blank"
+        style="
+          display: inline-block;
+          background: linear-gradient(to right, #28c2f4, #2b9ed2);
+          color: white;
+          font-weight: 600;
+          padding: 10px 18px;
+          border-radius: 8px;
+          text-decoration: none;
+          box-shadow: 0 4px 12px rgba(40,194,244,0.3);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        "
+        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 18px rgba(40,194,244,0.4)'"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(40,194,244,0.3)'"
+      >
+        📍 Xem bản đồ lớn hơn
+      </a>
+    </div>
+
+    <br>
+    
+    <iframe
+      width="100%"
+      height="450"
+      style="border:0; border-radius: 12px;"
+      loading="lazy"
+      allowfullscreen
+      referrerpolicy="no-referrer-when-downgrade"
+      src="${mapUrl}&hl=vi&z=15&output=embed">
+    </iframe>
+  `;
+  document.getElementById('mapContainer').innerHTML = iframe;
+}
+
+
+  function searchMap() {
+    const query = document.getElementById('mapSearch').value;
+    if (!query.trim()) {
+      alert("Vui lòng nhập từ khóa tìm kiếm (ví dụ: bệnh viện da liễu)");
+      return;
+    }
+    showMap(query);
+  }
   </script>
 </body>
 </html>

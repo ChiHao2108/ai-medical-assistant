@@ -148,3 +148,54 @@ button:hover {
   margin-bottom: 30px;
   box-shadow: 0 2px 6px rgba(255, 193, 7, 0.15);
 }
+
+.image-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.preview-thumb {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.map-box {
+  margin-top: 20px;
+}
+.map-box iframe {
+  width: 100%;
+  height: 250px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.map-box {
+  margin-top: 20px;
+}
+.map-box iframe {
+  width: 100%;
+  height: 250px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.image-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.preview-thumb {
+  width: 120px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  object-fit: cover;
+}

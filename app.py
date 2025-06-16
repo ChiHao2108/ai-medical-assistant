@@ -1,99 +1,156 @@
-from flask import Flask, request, jsonify, render_template 
+from flask import Flask, request, jsonify, render_template
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from PIL import Image
 import io
+import json
+from datetime import datetime
 
-# Load environment variables from .env file
+# Load .env
 load_dotenv()
 
 app = Flask(__name__)
 
-# Configure Google Generative AI with your API Key
+# API Key
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY not found in environment variables. Please set it in a .env file.")
+    raise ValueError("GOOGLE_API_KEY is missing in .env")
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# Dùng mô hình miễn phí, phản hồi nhanh
+# Dùng mô hình mới nhất, phản hồi nhanh
 model = genai.GenerativeModel('gemini-1.5-flash-latest')
+
+# Giới hạn lượt dùng miễn phí mỗi tháng
+USAGE_FILE = "usage.json"
+LIMIT_PER_MONTH = 100  # lượt miễn phí/tháng
+WARNING_THRESHOLD = 90  # cảnh báo nếu vượt 90%
+
+# Tạo usage file nếu chưa tồn tại
+def init_usage():
+    if not os.path.exists(USAGE_FILE):
+        with open(USAGE_FILE, 'w') as f:
+            json.dump({}, f)
+
+def get_usage_data():
+    with open(USAGE_FILE, 'r') as f:
+        return json.load(f)
+
+def save_usage_data(data):
+    with open(USAGE_FILE, 'w') as f:
+        json.dump(data, f)
+
+def check_usage_status():
+    now = datetime.now()
+    key = f"{now.year}-{now.month}"
+    data = get_usage_data()
+    used = data.get(key, 0)
+    percent_used = int((used / LIMIT_PER_MONTH) * 100)
+    if used >= LIMIT_PER_MONTH:
+        return {"blocked": True, "message": "Đã hết lượt miễn phí trong tháng này."}
+    elif percent_used >= WARNING_THRESHOLD:
+        return {"blocked": False, "message": f"⚠️ Bạn đã dùng {used}/{LIMIT_PER_MONTH} lượt trong tháng này."}
+    else:
+        return {"blocked": False, "message": None}
+
+def increase_usage():
+    now = datetime.now()
+    key = f"{now.year}-{now.month}"
+    data = get_usage_data()
+    data[key] = data.get(key, 0) + 1
+    save_usage_data(data)
+
+init_usage()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    usage_status = check_usage_status()
+    return render_template('index.html', usage_status=usage_status)
 
 @app.route('/ask_text', methods=['POST'])
 def ask_text():
-    user_question = request.json.get('question')
-    if not user_question:
-        return jsonify({"error": "Không có câu hỏi được cung cấp"}), 400
+    usage_status = check_usage_status()
+    if usage_status['blocked']:
+        return jsonify({"error": usage_status['message']}), 403
+
+    question = request.json.get('question')
+    if not question:
+        return jsonify({"error": "Vui lòng nhập mô tả triệu chứng"}), 400
 
     try:
-        medical_prompt = (
-            "Bạn là một trợ lý y tế AI. Dựa trên triệu chứng sau, hãy gợi ý một số khả năng bệnh nhẹ thường gặp, và các thuốc không kê đơn (OTC) phổ biến có thể giúp giảm nhẹ triệu chứng. "
-            "Chỉ nêu các thuốc đã được chứng minh an toàn, dễ mua tại nhà thuốc (ví dụ: paracetamol, oresol, thuốc ho thảo dược,...) "
-            "**KHÔNG KÊ ĐƠN CHÍNH THỨC. KHÔNG ĐƯỢC NÊU THUỐC KHÁNG SINH, CORTICOID, HOẶC CÁC THUỐC CẦN TOA.** "
-            "Nếu không chắc, hãy gợi ý người dùng đến bác sĩ hoặc dược sĩ để xác nhận. "
-            "Triệu chứng người dùng: " + user_question +
-            "\n\nBắt đầu câu trả lời bằng: 'Lưu ý: Các thông tin sau chỉ mang tính tham khảo.'"
+        prompt = (
+            "Bạn là một trợ lý y tế AI. Dựa trên mô tả triệu chứng sau, hãy: "
+            "- Phân tích ngắn gọn những bệnh nhẹ thường gặp. "
+            "- Gợi ý thuốc không kê đơn (OTC) phù hợp như Paracetamol, thuốc ho thảo dược, v.v. "
+            "- Nếu triệu chứng không rõ, hãy khuyên người dùng đi khám. "
+            "- QUAN TRỌNG: Gợi ý TÊN CHUYÊN KHOA phù hợp và TÊN MỘT SỐ BỆNH VIỆN phổ biến tại Việt Nam có chuyên khoa đó.\n\n"
+            "Mô tả: " + question +
+            "\n\nLưu ý: Chỉ mang tính chất tham khảo. Không được chẩn đoán thay bác sĩ."
         )
 
-        response = model.generate_content(
-            medical_prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=300  # Giới hạn độ dài trả lời
-            )
-        )
-        return jsonify({"answer": response.text})
+        response = model.generate_content(prompt, generation_config=genai.types.GenerationConfig(max_output_tokens=400))
+        increase_usage()
+        return jsonify({"answer": response.text, "warning": usage_status['message']})
     except Exception as e:
-        print(f"Lỗi khi hỏi AI: {e}")
-        return jsonify({"error": f"Có lỗi xảy ra: {str(e)}"}), 500
+        print("Lỗi ask_text:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/analyze_image', methods=['POST'])
 def analyze_image():
-    if 'image' not in request.files:
-        return jsonify({"error": "Không có hình ảnh được cung cấp"}), 400
+    usage_status = check_usage_status()
+    if usage_status['blocked']:
+        return jsonify({"error": usage_status['message']}), 403
 
-    image_file = request.files['image']
+    files = request.files.getlist('image')
     text_input = request.form.get('text_input', '')
 
-    if image_file.filename == '':
-        return jsonify({"error": "Không có file hình ảnh nào được chọn"}), 400
+    if not files or len(files) == 0:
+        return jsonify({"error": "Chưa gửi hình ảnh nào"}), 400
 
     try:
-        image_bytes = image_file.read()
-        image = Image.open(io.BytesIO(image_bytes))
+        image_list = []
+        for f in files:
+            if f and f.filename:
+                img_bytes = f.read()
+                image = Image.open(io.BytesIO(img_bytes))
+                image_list.append(image)
+
+        if len(image_list) == 0:
+            return jsonify({"error": "Tập tin ảnh không hợp lệ"}), 400
 
         if text_input:
-            medical_image_prompt = (
-                "Bạn là một trợ lý y tế AI. Dựa trên triệu chứng sau, hãy gợi ý một số khả năng bệnh nhẹ thường gặp, và các thuốc không kê đơn (OTC) phổ biến có thể giúp giảm nhẹ triệu chứng. "
-                "Chỉ nêu các thuốc đã được chứng minh an toàn, dễ mua tại nhà thuốc (ví dụ: paracetamol, oresol, thuốc ho thảo dược,...) "
-                "**KHÔNG KÊ ĐƠN CHÍNH THỨC. KHÔNG ĐƯỢC NÊU THUỐC KHÁNG SINH, CORTICOID, HOẶC CÁC THUỐC CẦN TOA.** "
-                "Nếu không chắc, hãy gợi ý người dùng đến bác sĩ hoặc dược sĩ để xác nhận. "
-                "Triệu chứng người dùng: " + text_input +
-                "\n\nBắt đầu câu trả lời bằng: 'Lưu ý: Các thông tin sau chỉ mang tính tham khảo.'"
+            prompt = (
+                "Bạn là một trợ lý y tế AI. Hãy xem hình ảnh (có thể là da, tổn thương ngoài da,...) kèm mô tả sau để phân tích sơ bộ. "
+                "Gợi ý vài khả năng bệnh nhẹ nếu có dấu hiệu rõ ràng, kèm cách xử lý cơ bản tại nhà và thuốc không kê đơn (nếu phù hợp). "
+                "Tuyệt đối không đề xuất thuốc cần kê đơn. Sau cùng, nếu cần, hãy gợi ý chuyên khoa hoặc bệnh viện phù hợp tại Việt Nam. "
+                f"Mô tả: {text_input} \n\nLưu ý: Các thông tin sau chỉ mang tính tham khảo."
             )
         else:
-            medical_image_prompt = (
-                "Bạn là một trợ lý phân tích hình ảnh y tế ảo. Vui lòng mô tả ngắn gọn các đặc điểm trực quan trong hình ảnh này liên quan đến y tế. "
-                "Không phân tích dư thừa, không đưa ra chẩn đoán hay kết luận cuối cùng. "
-                "Nếu có thể, hãy liệt kê dưới dạng gạch đầu dòng các yếu tố bất thường (nếu có)."
-                "Luôn nhắc người dùng tham khảo bác sĩ để xác nhận. "
+            prompt = (
+                "Bạn là trợ lý AI y tế. Hãy xem hình ảnh sau và mô tả các đặc điểm y tế trực quan nếu có. "
+                "Không chẩn đoán, chỉ nêu ra điểm bất thường (nếu có). Gợi ý người dùng nên đi khám nếu cần."
+                "\n\nLưu ý: Các thông tin sau chỉ mang tính tham khảo."
             )
 
-        contents = [medical_image_prompt, image]
-        response = model.generate_content(
-            contents,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=300
-            )
-        )
-        return jsonify({"analysis": response.text})
+        contents = [prompt]
+        for img in image_list:
+            contents.append(img)
+
+        response = model.generate_content(contents, generation_config=genai.types.GenerationConfig(max_output_tokens=400))
+        increase_usage()
+        return jsonify({"analysis": response.text, "warning": usage_status['message']})
     except Exception as e:
-        print(f"Lỗi khi phân tích hình ảnh: {e}")
-        return jsonify({"error": f"Có lỗi xảy ra trong quá trình phân tích hình ảnh: {str(e)}"}), 500
+        print("Lỗi analyze_image:", e)
+        return jsonify({"error": f"Lỗi xử lý ảnh: {str(e)}"}), 500
+
+@app.route('/usage_check')
+def usage_check():
+    status = check_usage_status()
+    return jsonify({
+        "warning": status['message'] if status['message'] else None,
+        "blocked": status['blocked']
+    })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True)
 
