@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trợ lý Y tế AI (Tham khảo)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css"> 
+</head>
+<body>
+  <div class="container">
+    <div class="background-decoration"></div>
+
+    <h1>Trợ lý Y tế AI <br><small>(Thông tin tham khảo)</small></h1>
+
+    <div class="disclaimer">
+      Lưu ý quan trọng: Ứng dụng này chỉ cung cấp thông tin tham khảo. AI không phải là bác sĩ. Vui lòng tham khảo ý kiến chuyên gia y tế để chẩn đoán, điều trị hoặc kê đơn thuốc.
+    </div>
+
+    <!-- PHÂN TÍCH TRIỆU CHỨNG -->
+    <div class="section">
+      <h2>1. Phân tích triệu chứng</h2>
+      <label for="questionInput">Mô tả triệu chứng của bạn:</label>
+      <textarea id="questionInput" rows="6" placeholder="Ví dụ: Tôi bị sốt cao, đau họng, ho khan và đau cơ toàn thân."></textarea>
+      <button onclick="askText()">Gửi mô tả</button>
+      <div class="result-box">
+        <p>Kết quả phân tích:</p>
+        <div id="textResult"></div>
+      </div>
+    </div>
+
+    <!-- PHÂN TÍCH HÌNH ẢNH -->
+    <div class="section">
+      <h2>2. Phân tích hình ảnh y tế</h2>
+      <label for="imageUpload">Chọn hình ảnh (ví dụ: hình ảnh da, vết thương):</label>
+      <input type="file" id="imageUpload" accept="image/*" onchange="previewImage()">
+      <img id="imagePreview" src="#" alt="Xem trước hình ảnh" style="display:none;">
+      <label for="imageTextInput">Nhập câu hỏi về hình ảnh (tùy chọn):</label>
+      <input type="text" id="imageTextInput" placeholder="Ví dụ: Mô tả vết phát ban này.">
+      <button onclick="analyzeImage()">Phân tích hình ảnh</button>
+      <div class="result-box">
+        <p>Kết quả phân tích:</p>
+        <div id="imageResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Xem trước ảnh
+    function previewImage() {
+      const fileInput = document.getElementById('imageUpload');
+      const imagePreview = document.getElementById('imagePreview');
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imagePreview.src = e.target.result;
+          imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        imagePreview.src = '#';
+        imagePreview.style.display = 'none';
+      }
+    }
+
+    // Gửi mô tả triệu chứng
+    async function askText() {
+      const question = document.getElementById('questionInput').value;
+      const textResultDiv = document.getElementById('textResult');
+      textResultDiv.innerHTML = '<span class="loading">Đang xử lý...</span>';
+      if (!question) {
+        textResultDiv.innerHTML = 'Vui lòng mô tả triệu chứng của bạn.';
+        return;
+      }
+      try {
+        const response = await fetch('/ask_text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: question })
+        });
+        const data = await response.json();
+        textResultDiv.innerText = response.ok ? data.answer : 'Lỗi: ' + data.error;
+      } catch (error) {
+        textResultDiv.innerText = 'Có lỗi xảy ra khi gửi yêu cầu: ' + error.message;
+      }
+    }
+
+    // Phân tích ảnh
+    async function analyzeImage() {
+      const imageFile = document.getElementById('imageUpload').files[0];
+      const imageTextInput = document.getElementById('imageTextInput').value;
+      const imageResultDiv = document.getElementById('imageResult');
+      imageResultDiv.innerHTML = '<span class="loading">Đang xử lý...</span>';
+      if (!imageFile) {
+        imageResultDiv.innerHTML = 'Vui lòng chọn một hình ảnh.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      formData.append('text_input', imageTextInput);
+
+      try {
+        const response = await fetch('/analyze_image', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        imageResultDiv.innerText = response.ok ? data.analysis : 'Lỗi: ' + data.error;
+      } catch (error) {
+        imageResultDiv.innerText = 'Có lỗi xảy ra khi gửi yêu cầu: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
